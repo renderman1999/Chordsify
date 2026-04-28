@@ -59,7 +59,7 @@ Chordisify lets you upload any song and instantly get accurate guitar chords and
 
 ## 🚀 Demo
 
-**Live Site:** [https://chordisify.vercel.app](https://chordisify.vercel.app) *(optional)*  
+
 **Video Walkthrough:** Coming soon!
 
 ---
