@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Header } from "@/components/Header";
 import { AudioUploader } from "@/components/AudioUploader";
@@ -6,18 +5,7 @@ import { AudioWaveform } from "@/components/AudioWaveform";
 import { ChordDisplay, ChordSection } from "@/components/ChordDisplay";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-
-// Mock chord data for demo purposes
-const MOCK_CHORD_DATA: ChordSection[] = [
-  { id: 1, startTime: 0, endTime: 15.5, chord: "G" },
-  { id: 2, startTime: 15.5, endTime: 30.2, chord: "Em" },
-  { id: 3, startTime: 30.2, endTime: 45.8, chord: "C" },
-  { id: 4, startTime: 45.8, endTime: 61.1, chord: "D" },
-  { id: 5, startTime: 61.1, endTime: 76.7, chord: "G" },
-  { id: 6, startTime: 76.7, endTime: 92.3, chord: "Em" },
-  { id: 7, startTime: 92.3, endTime: 108, chord: "Am" },
-  { id: 8, startTime: 108, endTime: 123.5, chord: "D7" },
-];
+import { analyzeAudio } from "@/lib/analyzeAudio";
 
 const Index = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -27,36 +15,40 @@ const Index = () => {
   const handleFileSelected = (file: File) => {
     setSelectedFile(file);
     setChordData(null);
-    setIsProcessing(true);
-    
-    // Simulate processing delay
-    setTimeout(() => {
-      setIsProcessing(false);
-      setChordData(MOCK_CHORD_DATA);
-    }, 3000);
   };
-  
-  const handleProcessAudio = () => {
+
+  const handleProcessAudio = async () => {
     if (!selectedFile) {
       toast.error("Please upload an audio file first");
       return;
     }
-    
+
     setIsProcessing(true);
     toast.info("Processing audio...");
-    
-    // Simulate processing delay
-    setTimeout(() => {
+
+    try {
+      const chords = await analyzeAudio(selectedFile);
+      if (chords.length === 0) {
+        toast.warning("No chords detected in this file");
+        setChordData([]);
+      } else {
+        setChordData(chords);
+        toast.success("Audio processed successfully!");
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to analyze audio";
+      toast.error(message);
+      setChordData(null);
+    } finally {
       setIsProcessing(false);
-      setChordData(MOCK_CHORD_DATA);
-      toast.success("Audio processed successfully!");
-    }, 3000);
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      
+
       <main className="flex-1 container py-8">
         <div className="max-w-4xl mx-auto space-y-10">
           <div className="text-center mb-10">
@@ -72,15 +64,15 @@ const Index = () => {
             <AudioUploader onFileSelected={handleFileSelected} />
           ) : (
             <div className="space-y-8">
-              <AudioWaveform 
-                filename={selectedFile.name} 
-                isProcessing={isProcessing} 
+              <AudioWaveform
+                filename={selectedFile.name}
+                isProcessing={isProcessing}
               />
-              
+
               {!chordData && !isProcessing && (
                 <div className="flex justify-center">
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     onClick={handleProcessAudio}
                     className="gap-2"
                   >
@@ -88,15 +80,15 @@ const Index = () => {
                   </Button>
                 </div>
               )}
-              
-              {chordData && (
+
+              {chordData && chordData.length > 0 && (
                 <ChordDisplay chordSections={chordData} />
               )}
-              
+
               {selectedFile && (
                 <div className="flex justify-end">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       setSelectedFile(null);
                       setChordData(null);
@@ -110,7 +102,7 @@ const Index = () => {
           )}
         </div>
       </main>
-      
+
       <footer className="py-6 border-t border-music-surface">
         <div className="container text-center text-music-muted text-sm">
           <p>Chordsify - Convert Audio to Guitar Chords & Tabs</p>
